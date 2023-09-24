@@ -1,0 +1,37 @@
+* {
+  font-family: Verdana;
+}
+
+body {
+  background-color: black !important;
+}
+
+.containers {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: 10px;
+  row-gap: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.container {
+  display: flex;
+}
+
+.video_container{
+  margin-top: 50px;
+  display: flex;
+  gap: 12px;
+}
+
+.vid {
+  flex: 0 1 auto;
+  height: 200px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.hidden {
+  display: none;
+}
