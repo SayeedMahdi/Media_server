@@ -1,5 +1,24 @@
 const os = require('os')
 const ifaces = os.networkInterfaces()
+const https = require('https')
+
+
+const getPublicIp = async () => {
+  return new Promise((resolve, reject) => {
+    https.get('https://api.ipify.org', (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        resolve(data);
+      });
+    }).on('error', (err) => {
+      reject(err);
+    });
+  });
+};
+
 
 const getLocalIp = () => {
   let localIp = '127.0.0.1'
@@ -18,8 +37,8 @@ const getLocalIp = () => {
 }
 
 module.exports = {
-  listenIp: '127.0.0.1',
-  listenPort: 3016,
+  listenIp: getPublicIp(),
+  listenPort: 4000,
   sslCrt: '../ssl/cert.pem',
   sslKey: '../ssl/key.pem',
 
@@ -37,11 +56,6 @@ module.exports = {
         'rtp',
         'srtp',
         'rtcp'
-        // 'rtx',
-        // 'bwe',
-        // 'score',
-        // 'simulcast',
-        // 'svc'
       ]
     },
     // Router settings
@@ -67,8 +81,8 @@ module.exports = {
     webRtcTransport: {
       listenIps: [
         {
-          ip: '139.144.48.122',
-          announcedIp: getLocalIp() // replace by public IP address
+          ip: '0.0.0.0',
+         announcedIp: getLocalIp() // replace by public IP address
         }
       ],
       maxIncomingBitrate: 1500000,

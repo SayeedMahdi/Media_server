@@ -9,14 +9,17 @@ const path = require('path')
 const Room = require('./Room')
 const Peer = require('./Peer')
 
+// SSL options
 const options = {
   key: fs.readFileSync(path.join(__dirname, config.sslKey), 'utf-8'),
   cert: fs.readFileSync(path.join(__dirname, config.sslCrt), 'utf-8')
 }
 
+// سرور اینجی ساخته میشه 
 const httpsServer = https.createServer(options, app)
 const io = require('socket.io')(httpsServer)
 
+// ای قسمت یو آی ها ما ارسال میشه
 app.use(express.static(path.join(__dirname, '..', 'public')))
 
 httpsServer.listen(config.listenPort, () => {
@@ -27,24 +30,7 @@ httpsServer.listen(config.listenPort, () => {
 let workers = []
 let nextMediasoupWorkerIdx = 0
 
-/**
- * roomList
- * {
- *  room_id: Room {
- *      id:
- *      router:
- *      peers: {
- *          id:,
- *          name:,
- *          master: [boolean],
- *          transports: [Map],
- *          producers: [Map],
- *          consumers: [Map],
- *          rtpCapabilities:
- *      }
- *  }
- * }
- */
+
 let roomList = new Map()
 
 ;(async () => {
@@ -53,6 +39,7 @@ let roomList = new Map()
 
 async function createWorkers() {
   let { numWorkers } = config.mediasoup
+  console.log("number",numWorkers);
 
   for (let i = 0; i < numWorkers; i++) {
     let worker = await mediasoup.createWorker({
