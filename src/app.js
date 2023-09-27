@@ -1,6 +1,7 @@
 const express = require('express')
 
 const app = express()
+// TODO use http internel module---------------------------1
 const https = require('httpolyglot')
 const fs = require('fs')
 const mediasoup = require('mediasoup')
@@ -17,7 +18,11 @@ const options = {
 
 // سرور اینجی ساخته میشه 
 const httpsServer = https.createServer(options, app)
-const io = require('socket.io')(httpsServer)
+//import { Server } from 'socket.io'
+const {Server} = require('socket.io')
+const io = new Server(httpsServer)
+
+const connections = io.of('/mediasoup')
 
 // ای قسمت یو آی ها ما ارسال میشه
 app.use(express.static(path.join(__dirname, '..', 'public')))
@@ -56,15 +61,16 @@ async function createWorkers() {
     workers.push(worker)
 
     // log worker resource usage
-    /*setInterval(async () => {
-            const usage = await worker.getResourceUsage();
+    // setInterval(async () => {
+    //         const usage = await worker.getResourceUsage();
 
-            console.info('mediasoup Worker resource usage [pid:%d]: %o', worker.pid, usage);
-        }, 120000);*/
+    //         console.info('mediasoup Worker resource usage [pid:%d]: %o', worker.pid, usage);
+    //     }, 120000);
   }
 }
 
-io.on('connection', (socket) => {
+connections.on('connection', (socket) => {
+  console.log("client connected");
   socket.on('createRoom', async ({ room_id }, callback) => {
     if (roomList.has(room_id)) {
       callback('already exists')
@@ -238,7 +244,6 @@ function room() {
     }
   })
 }
-
 /**
  * Get next mediasoup Worker.
  */
