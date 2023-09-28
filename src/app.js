@@ -70,7 +70,6 @@ async function createWorkers() {
 }
 
 connections.on('connection', (socket) => {
-  console.log("socket", socket);
 
   socket.on('createRoom', async ({ room_id }, callback) => {
     try{
@@ -133,9 +132,8 @@ connections.on('connection', (socket) => {
       })
       callback(roomList.get(socket.room_id)?.getRtpCapabilities())
     } catch (e) {
-      callback({
-        error: e.message
-      })
+       return  e.message
+      
     }
   })
 
