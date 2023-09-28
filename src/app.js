@@ -1,7 +1,6 @@
 const express = require('express')
 
 const app = express()
-// TODO use http internel module---------------------------1
 const https = require('httpolyglot')
 const fs = require('fs')
 const mediasoup = require('mediasoup')
