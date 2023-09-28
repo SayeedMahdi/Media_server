@@ -1,5 +1,4 @@
 const express = require('express')
-
 const app = express()
 const https = require('httpolyglot')
 const fs = require('fs')
@@ -15,17 +14,16 @@ const options = {
   cert: fs.readFileSync(path.join(__dirname, config.sslCrt), 'utf-8')
 }
 
-// سرور اینجی ساخته میشه 
+//  create https server and socket server here
 const httpsServer = https.createServer(options, app)
-//import { Server } from 'socket.io'
 const {Server} = require('socket.io')
 const io = new Server(httpsServer)
-
 const connections = io.of('/mediasoup')
 
-// ای قسمت یو آی ها ما ارسال میشه
+// pass the ui to express app 
 app.use(express.static(path.join(__dirname, '..', 'public')))
 
+// listinign on defined port 
 httpsServer.listen(config.listenPort, () => {
   console.log('Listening on https://' + config.listenIp + ':' + config.listenPort)
 })
@@ -33,14 +31,14 @@ httpsServer.listen(config.listenPort, () => {
 // all mediasoup workers
 let workers = []
 let nextMediasoupWorkerIdx = 0
-
-
 let roomList = new Map()
 
+// call the create workers function
 ;(async () => {
   await createWorkers()
 })()
 
+// create workers according to machine cpu and exit the process if any error happend
 async function createWorkers() {
   let { numWorkers } = config.mediasoup
   console.log("number",numWorkers);
@@ -70,6 +68,7 @@ async function createWorkers() {
 
 connections.on('connection', (socket) => {
 
+  // socket for create room and add it to room list
   socket.on('createRoom', async ({ room_id }, callback) => {
     try{
 
@@ -86,6 +85,7 @@ connections.on('connection', (socket) => {
     }
   })
 
+  // socket for adding a peer to provided room 
   socket.on('join', ({ room_id, name }, cb) => {
     try{
     console.log('User joined', {
@@ -108,6 +108,7 @@ connections.on('connection', (socket) => {
   }
   })
 
+  // socket for listing all producers for newly joined users
   socket.on('getProducers', () => {
     try{
 
@@ -123,6 +124,7 @@ connections.on('connection', (socket) => {
     }
   })
 
+  // socket for returning getRouterRtpCapabilities
   socket.on('getRouterRtpCapabilities', (_, callback) => {
     
     try {
@@ -136,6 +138,7 @@ connections.on('connection', (socket) => {
     }
   })
 
+  // socket for allowing the peer to transport its data
   socket.on('createWebRtcTransport', async (_, callback) => {
     
     try {

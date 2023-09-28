@@ -2,7 +2,7 @@ const os = require('os')
 const ifaces = os.networkInterfaces()
 const https = require('https')
 
-
+//  get public ip of machine
 const getPublicIp = async () => {
   return new Promise((resolve, reject) => {
     https.get('https://api.ipify.org', (res) => {
@@ -19,7 +19,7 @@ const getPublicIp = async () => {
   });
 };
 
-
+// get local ip of machine
 const getLocalIp = () => {
   let localIp = '127.0.0.1'
   Object.keys(ifaces).forEach((ifname) => {
