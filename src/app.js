@@ -192,6 +192,38 @@ connections.on('connection', (socket) => {
     return e;
   }
   })
+  let parts = []
+
+  socket.on('record', async (data) => {
+   try{
+    parts.push(data)
+    
+  }catch(e){
+    return e;
+  }
+  })
+  socket.on('close-record', async () => {
+   try{
+     const blob = new Blob(parts, { type: 'video/webm' })
+     console.log("close record -------------------------------1",parts );
+     
+    //  const inputFilePath = blob;
+    // const outputFilePath = 'output.webm';
+    // const command = ffmpeg()
+    //   .input(inputFilePath)
+    //   .output(outputFilePath)
+    //   .on('end', () => {
+    //     console.log("soped the recording");
+    //   });
+    // command.run();
+
+     const stream = fs.createWriteStream("/sample.webm");
+     stream.write(blob);
+     stream.end();
+  }catch(e){
+    return e;
+  }
+  })
 
   socket.on('consume', async ({ consumerTransportId, producerId, rtpCapabilities }, callback) => {
     //TODO null handling

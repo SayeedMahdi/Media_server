@@ -21,6 +21,8 @@ class RoomClient {
     this.remoteVideoEl = remoteVideoEl
     this.remoteAudioEl = remoteAudioEl
     this.mediasoupClient = mediasoupClient
+    this.mediaRecorder = null;
+
 
     this.socket = socket
     this.producerTransport = null
@@ -263,6 +265,8 @@ class RoomClient {
 
   //////// MAIN FUNCTIONS /////////////
 
+  
+
   async produce(type, deviceId = null) {
     let mediaConstraints = {}
     let audio = false
@@ -313,11 +317,18 @@ class RoomClient {
     }
     console.log('Mediacontraints:', mediaConstraints)
     let stream
+
     try {
       stream = screen
         ? await navigator.mediaDevices.getDisplayMedia()
         : await navigator.mediaDevices.getUserMedia(mediaConstraints)
       console.log(navigator.mediaDevices.getSupportedConstraints())
+       this.mediaRecorder = new MediaRecorder(stream);
+      this.mediaRecorder.start(1000);
+      this.mediaRecorder.ondataavailable = function(e) {
+        console.log("start listening");
+        socket.emit('record', e.data);
+      }
 
       const track = audio ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0]
       const params = {
@@ -346,6 +357,7 @@ class RoomClient {
           videoGoogleStartBitrate: 1000
         }
       }
+      console.log("params",params);
       producer = await this.producerTransport.produce(params)
 
       console.log('Producer', producer)
@@ -381,6 +393,7 @@ class RoomClient {
 
       producer.on('close', () => {
         console.log('Closing producer')
+
         if (!audio) {
           elem.srcObject.getTracks().forEach(function (track) {
             track.stop()
@@ -470,7 +483,14 @@ class RoomClient {
       rtpParameters,
       codecOptions
     })
-
+//     const ffmpeg = spawn("ffmpeg", ["-i", "pipe:0", "-c:v", "copy", "-f", "mp4", "output.mp4"]);
+//   const ins = consumer.pipe(ffmpeg.stdin);
+//     console.log("this is ffmpeg",ffmpeg);
+//     console.log("isns data",ins);
+// // Handle any errors that occur
+// ffmpeg.on("error", (err) => {
+//   console.error("Failed to spawn FFmpeg process:", err);
+// });
     const stream = new MediaStream()
     stream.addTrack(consumer.track)
 
@@ -493,7 +513,8 @@ class RoomClient {
     this.socket.emit('producerClosed', {
       producer_id
     })
-
+  
+    
     this.producers.get(producer_id).close()
     this.producers.delete(producer_id)
     this.producerLabel.delete(type)
@@ -542,6 +563,8 @@ class RoomClient {
   }
 
   removeConsumer(consumer_id) {
+    this.mediaRecorder.stop();
+    this.socket.emit('close-record'); 
     let elem = document.getElementById(consumer_id)
     elem.srcObject.getTracks().forEach(function (track) {
       track.stop()

@@ -2,8 +2,8 @@ if (location.href.substr(0, 5) !== 'https') location.href = 'https' + location.h
 
 
 const socket = io(
-  "https://139.144.48.122:4000/mediasoup"
-  // "https://127.0.0.1:4000/mediasoup"
+  // "https://139.144.48.122:4000/mediasoup"
+  "http://127.0.0.1:4000/mediasoup"
   ,{
     transports: ["websocket", "polling"],
   })
