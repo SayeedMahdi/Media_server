@@ -533,6 +533,7 @@ class RoomClient {
         break
       case mediaType.video:
         this.event(_EVENTS.stopVideo)
+        this.socket.emit('close-record'); 
         break
       case mediaType.screen:
         this.event(_EVENTS.stopScreen)
@@ -564,7 +565,6 @@ class RoomClient {
 
   removeConsumer(consumer_id) {
     this.mediaRecorder.stop();
-    this.socket.emit('close-record'); 
     let elem = document.getElementById(consumer_id)
     elem.srcObject.getTracks().forEach(function (track) {
       track.stop()

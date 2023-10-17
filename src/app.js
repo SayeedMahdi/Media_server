@@ -196,6 +196,7 @@ connections.on('connection', (socket) => {
 
   socket.on('record', async (data) => {
    try{
+    console.log("recoding started!");
     parts.push(data)
     
   }catch(e){
@@ -204,6 +205,7 @@ connections.on('connection', (socket) => {
   })
   socket.on('close-record', async () => {
    try{
+    console.log("stop record!");
      const blob = new Blob(parts, { type: 'video/webm' })
      console.log("close record -------------------------------1",parts );
      
@@ -217,10 +219,12 @@ connections.on('connection', (socket) => {
     //   });
     // command.run();
 
-     const stream = fs.createWriteStream("/sample.webm");
-     stream.write(blob);
-     stream.end();
+
+    const buffer = Buffer.from( await blob.arrayBuffer() );
+
+    fs.writeFile('video.webm', buffer, () => console.log('video saved!') );
   }catch(e){
+    console.log(e.message);
     return e;
   }
   })
@@ -273,8 +277,14 @@ connections.on('connection', (socket) => {
     }
   })
 
-  socket.on('producerClosed', ({ producer_id }) => {
+  socket.on('producerClosed', async({ producer_id }) => {
     try{
+      console.log("stop record!");
+      const blob = new Blob(parts, { type: 'video/mp4' })
+      
+    const buffer = Buffer.from( await blob.arrayBuffer() );
+
+    fs.writeFile('video.mp4', buffer, () => console.log('video saved!') );
     console.log('Producer close', {
       name: `${roomList.get(socket.room_id) && roomList.get(socket.room_id).getPeers().get(socket.id).name}`
     })
