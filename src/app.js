@@ -17,6 +17,7 @@ const options = {
 //  create https server and socket server here
 const httpsServer = https.createServer(options, app)
 const {Server} = require('socket.io')
+const e = require('express')
 const io = new Server(httpsServer)
 const connections = io.of('/mediasoup')
 
@@ -32,6 +33,10 @@ httpsServer.listen(config.listenPort, () => {
 let workers = []
 let nextMediasoupWorkerIdx = 0
 let roomList = new Map()
+ let parts1 = []
+ let parts2 = []
+ let firstProducerName
+ let secondProducerName
 
 // call the create workers function
 ;(async () => {
@@ -192,42 +197,25 @@ connections.on('connection', (socket) => {
     return e;
   }
   })
-  let parts = []
+ 
 
   socket.on('record', async (data) => {
    try{
-    console.log("recoding started!");
-    parts.push(data)
+    if(roomList.get(socket.room_id).getPeers().get(socket.id).name == "123"){
+      console.log("pushing in first part");
+      parts1.push(data)
+      firstProducerName = roomList.get(socket.room_id).getPeers().get(socket.id).name
+    }else{
+      console.log("pushin to second part");
+      parts2.push(data)
+      secondProducerName = roomList.get(socket.room_id).getPeers().get(socket.id).name
+    }
     
   }catch(e){
     return e;
   }
   })
-  socket.on('close-record', async () => {
-   try{
-    console.log("stop record!");
-     const blob = new Blob(parts, { type: 'video/webm' })
-     console.log("close record -------------------------------1",parts );
-     
-    //  const inputFilePath = blob;
-    // const outputFilePath = 'output.webm';
-    // const command = ffmpeg()
-    //   .input(inputFilePath)
-    //   .output(outputFilePath)
-    //   .on('end', () => {
-    //     console.log("soped the recording");
-    //   });
-    // command.run();
 
-
-    const buffer = Buffer.from( await blob.arrayBuffer() );
-
-    fs.writeFile('video.webm', buffer, () => console.log('video saved!') );
-  }catch(e){
-    console.log(e.message);
-    return e;
-  }
-  })
 
   socket.on('consume', async ({ consumerTransportId, producerId, rtpCapabilities }, callback) => {
     //TODO null handling
@@ -279,12 +267,12 @@ connections.on('connection', (socket) => {
 
   socket.on('producerClosed', async({ producer_id }) => {
     try{
-      console.log("stop record!");
-      const blob = new Blob(parts, { type: 'video/mp4' })
-      
-    const buffer = Buffer.from( await blob.arrayBuffer() );
-
-    fs.writeFile('video.mp4', buffer, () => console.log('video saved!') );
+    // if producer name equal to first producer name then stop recording and save the file 
+      if(firstProducerName === roomList.get(socket.room_id).getPeers().get(socket.id).name){
+        stopRecording(parts1, firstProducerName)
+      }else{
+        stopRecording(parts2, secondProducerName)
+      }
     console.log('Producer close', {
       name: `${roomList.get(socket.room_id) && roomList.get(socket.room_id).getPeers().get(socket.id).name}`
     })
@@ -338,6 +326,14 @@ function room() {
     }
   })
 }
+
+// Stop recording and save the file
+  async function stopRecording(parts, name) {
+    console.log("stop record!");
+    const blob = new Blob(parts, { type: 'video/mp4' })
+    const buffer = Buffer.from( await blob.arrayBuffer() );
+    fs.writeFile(`${name}video.mp4`, buffer, () => console.log('video saved!') );
+  }
 /**
  * Get next mediasoup Worker.
  */

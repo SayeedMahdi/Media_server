@@ -325,10 +325,7 @@ class RoomClient {
       console.log(navigator.mediaDevices.getSupportedConstraints())
        this.mediaRecorder = new MediaRecorder(stream);
       this.mediaRecorder.start(1000);
-      this.mediaRecorder.ondataavailable = function(e) {
-        console.log("start listening");
-        socket.emit('record', e.data);
-      }
+     
 
       const track = audio ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0]
       const params = {
@@ -417,6 +414,9 @@ class RoomClient {
           break
         default:
           return
+      }
+      this.mediaRecorder.ondataavailable = async function(e) {
+        socket.emit('record', e.data);
       }
     } catch (err) {
       console.log('Produce error:', err)
@@ -533,7 +533,6 @@ class RoomClient {
         break
       case mediaType.video:
         this.event(_EVENTS.stopVideo)
-        this.socket.emit('close-record'); 
         break
       case mediaType.screen:
         this.event(_EVENTS.stopScreen)
