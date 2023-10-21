@@ -19,7 +19,7 @@ const getLocalIp = () => {
 
 module.exports = {
   listenIp: '127.0.0.1',
-  listenPort: 3016,
+  listenPort: 4000,
   sslCrt: '../ssl/cert.pem',
   sslKey: '../ssl/key.pem',
 
