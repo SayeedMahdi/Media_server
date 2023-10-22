@@ -200,6 +200,7 @@ io.on('connection', (socket) => {
 
   socket.on('record', async (data) => {
    try{
+    //  first user   should be 123 , later we will make it dynamic
     if(roomList.get(socket.room_id).getPeers().get(socket.id).name == "123"){
       console.log("pushing in first part");
       parts1.push(data)
