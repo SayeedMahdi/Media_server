@@ -7,7 +7,7 @@ const config = require('./config')
 const path = require('path')
 const Room = require('./Room')
 const Peer = require('./Peer')
-
+const ffmpeg =  require("fluent-ffmpeg")
 // SSL options
 const options = {
   key: fs.readFileSync(path.join(__dirname, config.sslKey), 'utf-8'),
@@ -19,7 +19,7 @@ const httpsServer = https.createServer(options, app)
 const {Server} = require('socket.io')
 const e = require('express')
 const io = new Server(httpsServer)
-const connections = io.of('/mediasoup')
+// const connections = io.of('/mediasoup')
 
 // pass the ui to express app 
 app.use(express.static(path.join(__dirname, '..', 'public')))
@@ -71,7 +71,7 @@ async function createWorkers() {
   }
 }
 
-connections.on('connection', (socket) => {
+io.on('connection', (socket) => {
 
   // socket for create room and add it to room list
   socket.on('createRoom', async ({ room_id }, callback) => {
@@ -197,7 +197,6 @@ connections.on('connection', (socket) => {
     return e;
   }
   })
- 
 
   socket.on('record', async (data) => {
    try{
@@ -269,10 +268,28 @@ connections.on('connection', (socket) => {
     try{
     // if producer name equal to first producer name then stop recording and save the file 
       if(firstProducerName === roomList.get(socket.room_id).getPeers().get(socket.id).name){
-        stopRecording(parts1, firstProducerName)
-      }else{
-        stopRecording(parts2, secondProducerName)
-      }
+        
+    stopRecording(parts1, firstProducerName)
+    stopRecording(parts2, secondProducerName)
+
+    const input1 = `${firstProducerName}video.mp4`;
+    const input2 = `${secondProducerName}video.mp4`;
+    const output = 'output.webm';
+    
+    ffmpeg()
+    .input(input1)
+    .input(input2)
+    .complexFilter(['[0:v]scale=iw/2:ih/2[v0];[1:v]scale=iw/2:ih/2[v1];[v0][v1]hstack=inputs=2[v]'])
+    .outputOptions('-map', '[v]')
+    .output(output)
+    .on('end', () => {
+      console.log('Videos merged successfully!');
+    })
+    .on('error', (err) => {
+      console.error('Error merging videos:', err);
+    })
+    .run();
+  }
     console.log('Producer close', {
       name: `${roomList.get(socket.room_id) && roomList.get(socket.room_id).getPeers().get(socket.id).name}`
     })
