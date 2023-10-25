@@ -33,10 +33,15 @@ httpsServer.listen(config.listenPort, () => {
 let workers = []
 let nextMediasoupWorkerIdx = 0
 let roomList = new Map()
- let parts1 = []
- let parts2 = []
- let firstProducerName
- let secondProducerName
+ let videoParts1 = []
+ let videoParts2 = []
+ let audioParts1 = []
+ let audioParts2 = []
+ let firstVideoProducerName
+ let secondVideoProducerName
+ let firstAudioProducerName
+ let secondAudioProducerName
+
 
 // call the create workers function
 ;(async () => {
@@ -198,23 +203,40 @@ io.on('connection', (socket) => {
   }
   })
 
-  socket.on('record', async (data) => {
+  socket.on('recordVideo', async (data) => {
    try{
     //  first user   should be 123 , later we will make it dynamic
     if(roomList.get(socket.room_id).getPeers().get(socket.id).name == "123"){
-      console.log("pushing in first part");
-      parts1.push(data)
-      firstProducerName = roomList.get(socket.room_id).getPeers().get(socket.id).name
+      console.log("pushing in first video");
+      videoParts1.push(data)
+      firstVideoProducerName = roomList.get(socket.room_id).getPeers().get(socket.id).name
     }else{
-      console.log("pushin to second part");
-      parts2.push(data)
-      secondProducerName = roomList.get(socket.room_id).getPeers().get(socket.id).name
+      console.log("pushing to second part");
+      videoParts2.push(data)
+      secondVideoProducerName = roomList.get(socket.room_id).getPeers().get(socket.id).name
     }
     
   }catch(e){
     return e;
   }
   })
+  socket.on('recordAudio', async (data) => {
+    try{
+     //  first user   should be 123 , later we will make it dynamic
+     if(roomList.get(socket.room_id).getPeers().get(socket.id).name == "123"){
+       console.log("pushing in first audio");
+       audioParts1.push(data)
+       firstAudioProducerName = roomList.get(socket.room_id).getPeers().get(socket.id).name
+     }else{
+       console.log("pushing to second audio");
+       audioParts2.push(data)
+       secondAudioProducerName = roomList.get(socket.room_id).getPeers().get(socket.id).name
+     }
+     
+   }catch(e){
+     return e;
+   }
+   })
 
 
   socket.on('consume', async ({ consumerTransportId, producerId, rtpCapabilities }, callback) => {
@@ -268,28 +290,88 @@ io.on('connection', (socket) => {
   socket.on('producerClosed', async({ producer_id }) => {
     try{
     // if producer name equal to first producer name then stop recording and save the file 
-      if(firstProducerName === roomList.get(socket.room_id).getPeers().get(socket.id).name){
+      if(firstVideoProducerName === roomList.get(socket.room_id).getPeers().get(socket.id).name){
         
-    stopRecording(parts1, firstProducerName)
-    stopRecording(parts2, secondProducerName)
+    stopRecording(videoParts1, firstVideoProducerName)
+    stopRecording(videoParts2, secondVideoProducerName)
 
-    const input1 = `${firstProducerName}video.mp4`;
-    const input2 = `${secondProducerName}video.mp4`;
-    const output = 'output.webm';
+    stopRecording2(audioParts1 ,firstAudioProducerName)
+    stopRecording2(audioParts2 , secondAudioProducerName)
+
+  // mearging first audio with first video  
+     function mergeFirstAudioVideo() {
+      const inputVideo1 = `${firstVideoProducerName}video.mp4`;
+      const inputAudio1 = `${firstAudioProducerName}audio.mp3`; // Change the file extension to the appropriate audio format
+      const outputVideo1 = 'output1.mp4';
+      
+      ffmpeg()
+      .input(inputVideo1)
+      .input(inputAudio1)
+      .outputOptions('-c:v', 'libx264')
+      .outputOptions('-c:a', 'aac')
+      .outputOptions('-map', '0:v:0')
+      .outputOptions('-map', '1:a:0')
+      .output(outputVideo1)
+      .on('end', () => {
+        console.log('first audio with first video merged successfully !');
+      })
+      .on('error', (err) => {
+        console.error('Error merging first audio with first video:', err);
+      })
+      .run();
+    }
+    setTimeout(() => {
+      mergeFirstAudioVideo()
+    }, 1000);
+
+    //  merging second audio with second video
+     function mergeSecondAudioVideo() {
+      const inputVideo2 = `${secondVideoProducerName}video.mp4`;
+      const inputAudio2 = `${secondAudioProducerName}audio.mp3`; // Change the file extension to the appropriate audio format
+      const outputVideo2 = 'output2.mp4';
+      
+      ffmpeg()
+      .input(inputVideo2)
+      .input(inputAudio2)
+      .outputOptions('-c:v', 'libx264')
+      .outputOptions('-c:a', 'aac')
+      .outputOptions('-map', '0:v:0')
+      .outputOptions('-map', '1:a:0')
+      .output(outputVideo2)
+      .on('end', () => {
+        console.log('second audio merged with second video successfully !');
+      })
+      .on('error', (err) => {
+        console.error('Error merging second audio with second audio:', err);
+      })
+      .run();
+    }
+    setTimeout(() => {
+       mergeSecondAudioVideo()
+    }, 1000);
     
-    ffmpeg()
-    .input(input1)
-    .input(input2)
-    .complexFilter(['[0:v]scale=iw/2:ih/2[v0];[1:v]scale=iw/2:ih/2[v1];[v0][v1]hstack=inputs=2[v]'])
-    .outputOptions('-map', '[v]')
-    .output(output)
-    .on('end', () => {
-      console.log('Videos merged successfully!');
-    })
-    .on('error', (err) => {
-      console.error('Error merging videos:', err);
-    })
-    .run();
+
+    //  merging output1 with output2 as final video
+    // async function mergeFirstOutputWithSecond() {
+    //   const input1 = "output1.mp4";
+    //   const input2 = "output2.mp4"
+    //   const output = "final.mp4"
+      
+    //   ffmpeg()
+    //   .input(input1)
+    //   .input(input2)
+    //   .complexFilter(['[0:v]scale=iw/2:ih/2[v0];[1:v]scale=iw/2:ih/2[v1];[v0][v1]hstack=inputs=2[v]'])
+    //   .outputOptions('-map', '[v]')
+    //   .output(output)
+    //   .on('end', () => {
+    //     console.log('final video generated successfully!');
+    //   })
+    //   .on('error', (err) => {
+    //     console.error('Error merging videos:', err);
+    //   })
+    //   .run();
+    // }
+    // await mergeFirstOutputWithSecond()
   }
     console.log('Producer close', {
       name: `${roomList.get(socket.room_id) && roomList.get(socket.room_id).getPeers().get(socket.id).name}`
@@ -351,6 +433,13 @@ function room() {
     const blob = new Blob(parts, { type: 'video/mp4' })
     const buffer = Buffer.from( await blob.arrayBuffer() );
     fs.writeFile(`${name}video.mp4`, buffer, () => console.log('video saved!') );
+  }
+
+  async function stopRecording2(parts, name) {
+    console.log("stop record!");
+    const blob = new Blob(parts, { type: 'audio/mp3' });
+    const buffer = Buffer.from(await blob.arrayBuffer());
+    fs.writeFile(`${name}audio.mp3`, buffer, () => console.log('audio saved!'));
   }
 /**
  * Get next mediasoup Worker.

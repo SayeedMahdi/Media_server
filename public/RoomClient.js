@@ -415,9 +415,17 @@ class RoomClient {
         default:
           return
       }
-      this.mediaRecorder.ondataavailable = async function(e) {
-        socket.emit('record', e.data);
+      if(type == "videoType")  {
+        this.mediaRecorder.ondataavailable = async function(e) {
+          socket.emit('recordVideo', e.data);
+        }
       }
+      if(type == "audioType") {
+        this.mediaRecorder.ondataavailable = async function(e) {
+          socket.emit('recordAudio', e.data);
+        }
+      }
+    
     } catch (err) {
       console.log('Produce error:', err)
     }
